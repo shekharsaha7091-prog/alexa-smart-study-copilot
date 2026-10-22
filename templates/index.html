@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Alexa+ Intelligent Study & Room Hub</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #070c18; color: #f1f5f9; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; margin: 0; }
+    .container { width: 100%; max-width: 820px; }
+    .main-box { background: #101a2e; border: 1px solid #1e293b; border-radius: 14px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); margin-bottom: 20px; text-align: center; }
+    h1 { color: #00d2d3; margin: 0 0 6px 0; font-size: 1.8rem; }
+    .tag { color: #64748b; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase; }
+    
+    /* Orb */
+    .orb-wrap { position: relative; width: 100px; height: 100px; margin: 20px auto; }
+    .orb { width: 100px; height: 100px; border-radius: 50%; background: radial-gradient(circle, #00d2d3 20%, #0abde3 70%); box-shadow: 0 0 30px #00d2d3; transition: 0.3s; }
+    .speaking { transform: scale(1.18); box-shadow: 0 0 60px #38bdf8, 0 0 90px #00d2d3; }
+    
+    /* Speech text */
+    .speech-box { font-size: 1.15rem; color: #38bdf8; margin: 15px 0; font-weight: 600; min-height: 30px; line-height: 1.4; }
+    
+    /* Input custom bar */
+    .custom-bar { display: flex; justify-content: center; gap: 8px; margin: 20px 0 15px 0; }
+    .custom-bar input { width: 68%; background: #060b14; border: 1px solid #334155; padding: 12px 16px; border-radius: 25px; color: #fff; font-size: 0.95rem; outline: none; }
+    .custom-bar input:focus { border-color: #00d2d3; box-shadow: 0 0 10px rgba(0,210,211,0.3); }
+    .custom-bar button { padding: 12px 22px; }
+
+    /* Button presets */
+    .btn-group { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+    button { background: #00d2d3; color: #070c18; border: none; padding: 10px 18px; border-radius: 20px; font-weight: 700; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+    button:hover { background: #48dbfb; transform: translateY(-2px); }
+    button:active { transform: scale(0.98); }
+    .btn-alt { background: #1e293b; color: #38bdf8; border: 1px solid #334155; }
+    .btn-alt:hover { background: #334155; color: #fff; }
+
+    /* Cards */
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; text-align: left; margin-top: 15px; }
+    .card { background: #091222; border: 1px solid #1e293b; padding: 14px; border-radius: 10px; border-left: 4px solid #00d2d3; }
+    .card-title { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 600; }
+    .card-val { font-size: 1.05rem; font-weight: bold; margin-top: 6px; color: #fff; }
+    
+    /* Tasks */
+    ul { list-style: none; padding: 0; margin-top: 15px; text-align: left; }
+    li { background: #091222; padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #1e293b; }
+    .badge { font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 12px; background: rgba(0,210,211,0.15); color: #00d2d3; border: 1px solid #00d2d3; }
+    .badge-urgent { background: rgba(239,68,68,0.2); color: #f87171; border-color: #ef4444; }
+
+    /* Terminal logs */
+    .terminal-log { background: #040812; border-radius: 8px; padding: 12px 16px; font-family: monospace; font-size: 0.85rem; color: #10b981; margin-top: 15px; text-align: left; border: 1px solid #1e293b; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="main-box">
+      <h1>Alexa+ Study & Room Copilot</h1>
+      <div class="tag">Simulated Ambient Intelligence & Edge Protocol</div>
+      
+      <div class="orb-wrap">
+        <div id="orb" class="orb"></div>
+      </div>
+      
+      <div id="speech" class="speech-box">"Alexa is listening and connected to your study environment."</div>
+
+      <!-- Custom Voice / Command Bar -->
+      <div class="custom-bar">
+        <input type="text" id="customInput" placeholder="Try: 'Alexa, exam mode' or 'add complete drawing'..." onkeypress="if(event.key === 'Enter') handleCustom()">
+        <button onclick="handleCustom()">Send Command</button>
+      </div>
+
+      <!-- Quick Preset Triggers -->
+      <div class="btn-group">
+        <button onclick="triggerAction('focus')">🎙️ "Alexa, Focus Sprint"</button>
+        <button onclick="triggerAction('relax')">🎙️ "Alexa, Ambient Break"</button>
+        <button onclick="triggerAction('exam')">🎙️ "Alexa, Exam Revision"</button>
+        <button class="btn-alt" onclick="triggerAction('task')">➕ Add Assignment</button>
+      </div>
+
+      <div class="terminal-log" id="log">[SYSTEM READY] Connected to local Flask runtime at port 5000.</div>
+    </div>
+
+    <!-- Live Smart Room & Device State -->
+    <div class="main-box">
+      <h3 style="text-align: left; margin: 0 0 15px 0;">Live Ambient & Smart Room Telemetry</h3>
+      
+      <div class="grid-4">
+        <div class="card"><div class="card-title">Study Mode</div><div class="card-val" id="modeVal">Balanced Study</div></div>
+        <div class="card"><div class="card-title">Smart Lighting</div><div class="card-val" id="lightVal">Daylight (4500K)</div></div>
+        <div class="card"><div class="card-title">Audio / Noise Channel</div><div class="card-val" id="noiseVal">Off</div></div>
+        <div class="card"><div class="card-title">Pomodoro Sprint</div><div class="card-val" id="timerVal">25:00 (Idle)</div></div>
+        <div class="card"><div class="card-title">Room Temp</div><div class="card-val" id="tempVal">23.5°C</div></div>
+        <div class="card"><div class="card-title">Air Quality</div><div class="card-val" id="airVal">Good (AQI 42)</div></div>
+        <div class="card"><div class="card-title">Desk Lamp</div><div class="card-val" id="lampVal">Auto-Adjust</div></div>
+        <div class="card"><div class="card-title">Sync State</div><div class="card-val" style="color:#00d2d3;">Online (Active)</div></div>
+      </div>
+
+      <h4 style="text-align: left; margin: 25px 0 10px 0;">Synced Academic Priority Planner</h4>
+      <ul id="taskList">
+        <li><span>Complete Engineering Assignment</span><span class="badge badge-urgent">Urgent</span></li>
+        <li><span>Practice C Programming Loops</span><span class="badge">Medium</span></li>
+        <li><span>Prepare Lab Records</span><span class="badge">Normal</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    var timerInterval = null;
+    var timerSeconds = 25 * 60;
+
+    // Real Audio Voice Synthesis
+    function speakAlexa(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        var utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.05;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    function pulseOrb() {
+      var orb = document.getElementById('orb');
+      orb.className = 'orb speaking';
+      setTimeout(function() { orb.className = 'orb'; }, 1300);
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timerSeconds = 25 * 60;
+      timerInterval = setInterval(function() {
+        if (timerSeconds <= 0) {
+          clearInterval(timerInterval);
+          document.getElementById('timerVal').innerText = "Session Done!";
+          speakAlexa("Sprint completed. Take a break.");
+          return;
+        }
+        timerSeconds--;
+        var m = Math.floor(timerSeconds / 60);
+        var s = timerSeconds % 60;
+        document.getElementById('timerVal').innerText = (m < 10 ? '0' : '') + m + ":" + (s < 10 ? '0' : '') + s;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      document.getElementById('timerVal').innerText = "Idle (Paused)";
+    }
+
+    function triggerAction(action, customText) {
+      pulseOrb();
+      var speech = document.getElementById('speech');
+      var log = document.getElementById('log');
+
+      if (action === 'focus') {
+        var reply = "Deep focus sprint initiated. Lights set to cool white and 25 minute timer started.";
+        speech.innerHTML = "Alexa: " + reply;
+        log.innerHTML = "[POST /api/command] Focus Trigger -> State updated with 25m Timer Sync!";
+        document.getElementById('modeVal').innerText = "Deep Focus Sprint";
+        document.getElementById('lightVal').innerText = "Cool White (6500K) - 100%";
+        document.getElementById('noiseVal').innerText = "Active White Noise";
+        document.getElementById('lampVal').innerText = "Focused High Beam";
+        startTimer();
+        speakAlexa(reply);
+
+      } else if (action === 'relax') {
+        var reply = "Switching to ambient relaxation mode. Enjoy your break.";
+        speech.innerHTML = "Alexa: " + reply;
+        log.innerHTML = "[POST /api/command] Ambient Break -> Room lighting dimmed to warm amber.";
+        document.getElementById('modeVal').innerText = "Ambient Break";
+        document.getElementById('lightVal').innerText = "Warm Amber (2700K) - 40%";
+        document.getElementById('noiseVal').innerText = "Lo-Fi Audio Channel";
+        document.getElementById('lampVal').innerText = "Soft Warm Glow";
+        stopTimer();
+        speakAlexa(reply);
+
+      } else if (action === 'exam') {
+        var reply = "Exam revision mode active. Background notifications silenced.";
+        speech.innerHTML = "Alexa: " + reply;
+        log.innerHTML = "[POST /api/command] Exam Mode -> High contrast lighting and binaural audio.";
+        document.getElementById('modeVal').innerText = "Exam Revision Mode";
+        document.getElementById('lightVal').innerText = "High Contrast (5000K)";
+        document.getElementById('noiseVal').innerText = "Binaural Beta Waves";
+        document.getElementById('lampVal').innerText = "Full Intensity";
+        startTimer();
+        speakAlexa(reply);
+
+      } else if (action === 'task') {
+        var taskName = customText || "Review Engineering Drawing";
+        var reply = "Added '" + taskName + "' to your active academic priority planner.";
+        speech.innerHTML = "Alexa: " + reply;
+        log.innerHTML = "[POST /api/command] Task Sync -> Added '" + taskName + "' to planner.";
+        
+        var list = document.getElementById('taskList');
+        var item = document.createElement('li');
+        item.innerHTML = "<span>" + taskName + "</span><span class='badge badge-urgent'>Urgent</span>";
+        list.insertBefore(item, list.firstChild);
+        speakAlexa(reply);
+      }
+
+      // Background telemetry sync to Python backend
+      fetch('/api/command', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ command: customText || action })
+      }).catch(function(err) {});
+    }
+
+    function handleCustom() {
+      var input = document.getElementById('customInput');
+      var val = input.value.trim();
+      if (!val) return;
+
+      var low = val.toLowerCase();
+      if (low.includes('focus') || low.includes('study')) {
+        triggerAction('focus');
+      } else if (low.includes('relax') || low.includes('break')) {
+        triggerAction('relax');
+      } else if (low.includes('exam')) {
+        triggerAction('exam');
+      } else {
+        triggerAction('task', val);
+      }
+      input.value = "";
+    }
+  </script>
+</body>
+</html>
